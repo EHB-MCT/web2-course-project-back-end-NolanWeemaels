@@ -2,9 +2,11 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
-const { connectDB } = require("./db");
-const { port } = require("./config");
+const { connectDB, getDB } = require("./db");
+const { port, jwtSecret, jwtExpiresIn } = require("./config");
 
 const app = express();
 app.use(cors());
@@ -13,6 +15,15 @@ app.use(express.json());
 // health
 app.get("/", (req, res) => {
   res.send({ message: "Fritkot GP API running" });
+});
+
+// --- WIP auth routes
+app.post("/auth/register", (req, res) => {
+  res.status(501).send({ message: "WIP: register not implemented yet" });
+});
+
+app.post("/auth/login", (req, res) => {
+  res.status(501).send({ message: "WIP: login not implemented yet" });
 });
 
 // DB connect
