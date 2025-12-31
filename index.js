@@ -35,19 +35,24 @@ app.post("/auth/register", async (req, res) => {
     const exists = await users.findOne({ email: String(email).toLowerCase() });
     if (exists) return res.status(409).send({ message: "Email already exists" });
 
-    const doc = {
-      username: String(username).trim(),
-      email: String(email).toLowerCase().trim(),
-      password, //tijdelijk plain text 
-      createdAt: new Date()
-    };
+    bcrypt.hash(password, 10, async (err, hash) => {
+  if (err) return res.status(500).send({ message: "Hashing failed" });
 
-    const result = await users.insertOne(doc);
+  const doc = {
+    username: String(username).trim(),
+    email: String(email).toLowerCase().trim(),
+    password: hash,
+    createdAt: new Date()
+  };
 
-    res.status(201).send({
-      user: { id: result.insertedId.toString(), username: doc.username, email: doc.email },
-      message: "Register ok (WIP: password not hashed yet)"
-    });
+  const result = await users.insertOne(doc);
+
+  res.status(201).send({
+    user: { id: result.insertedId.toString(), username: doc.username, email: doc.email },
+    message: "Register ok"
+  });
+});
+
   } catch (e) {
     console.error(e);
     res.status(500).send({ message: "Server error" });
