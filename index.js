@@ -82,6 +82,24 @@ function requireFields(res, body, fields) {
   return true;
 }
 
+function randBetween(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function simulate(trackLengthKm) {
+  const speedKmh = randBetween(250, 300);
+  const pitStopSec = randBetween(20, 25);
+  const travelTimeSec = (trackLengthKm / speedKmh) * 3600;
+  const totalSec = travelTimeSec + pitStopSec;
+
+  return {
+    speedKmh: Number(speedKmh.toFixed(2)),
+    pitStopSec: Number(pitStopSec.toFixed(2)),
+    travelTimeSec: Number(travelTimeSec.toFixed(2)),
+    lapTimeMs: Math.round(totalSec * 1000)
+  };
+}
+
 // health
 app.get("/", (req, res) => {
   res.send({ message: "Fritkot GP API running 🍟🏎️" });
