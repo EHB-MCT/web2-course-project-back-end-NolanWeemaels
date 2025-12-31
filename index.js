@@ -249,6 +249,34 @@ app.get("/tracks/:id", async (req, res) => {
   }
 });
 
+app.post("/races/simulate", auth, async (req, res) => {
+  try {
+    await seedIfEmpty();
+
+    const { teamId, trackId } = req.body;
+    if (!requireFields(res, req.body, ["teamId", "trackId"])) return;
+
+    const db = getDB();
+    const team = await db.collection("teams").findOne({ _id: new ObjectId(teamId) });
+    const track = await db.collection("tracks").findOne({ _id: new ObjectId(trackId) });
+
+    if (!team) return res.status(404).send({ message: "Team not found" });
+    if (!track) return res.status(404).send({ message: "Track not found" });
+
+    const result = simulate(track.lengthKm);
+
+    res.send({
+      status: "simulated",
+      result,
+      team: { id: team._id.toString(), name: team.name },
+      track: { id: track._id.toString(), city: track.city, lengthKm: track.lengthKm }
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
