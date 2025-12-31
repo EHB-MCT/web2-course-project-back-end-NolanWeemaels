@@ -12,9 +12,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// JWT helper (Commit 10)
+
 function signToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
+}
+
+function auth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).send({ message: "Missing Bearer token" });
+  }
+
+  const token = header.split(" ")[1];
+
+  try {
+    req.user = jwt.verify(token, jwtSecret); // { id, username, email }
+    next();
+  } catch {
+    return res.status(401).send({ message: "Invalid token" });
+  }
 }
 
 // health
