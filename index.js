@@ -18,8 +18,40 @@ app.get("/", (req, res) => {
 });
 
 // --- WIP auth routes
-app.post("/auth/register", (req, res) => {
-  res.status(501).send({ message: "WIP: register not implemented yet" });
+app.post("/auth/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).send({ message: "Missing username, email or password" });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).send({ message: "Password must be at least 6 characters" });
+    }
+
+    const db = getDB();
+    const users = db.collection("users");
+
+    const exists = await users.findOne({ email: String(email).toLowerCase() });
+    if (exists) return res.status(409).send({ message: "Email already exists" });
+
+    const doc = {
+      username: String(username).trim(),
+      email: String(email).toLowerCase().trim(),
+      password, //tijdelijk plain text 
+      createdAt: new Date()
+    };
+
+    const result = await users.insertOne(doc);
+
+    res.status(201).send({
+      user: { id: result.insertedId.toString(), username: doc.username, email: doc.email },
+      message: "Register ok (WIP: password not hashed yet)"
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
 });
 
 app.post("/auth/login", (req, res) => {
