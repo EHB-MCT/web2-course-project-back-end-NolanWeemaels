@@ -73,7 +73,7 @@ async function seedIfEmpty() {
 
 // health
 app.get("/", (req, res) => {
-  res.send({ message: "Fritkot GP API running 🍟🏎️" });
+  res.send({ message: "Fritkot GP API running" });
 });
 
 // AUTH: register
@@ -194,10 +194,23 @@ app.get("/teams/:id", async (req, res) => {
   }
 });
 
+app.get("/tracks", async (req, res) => {
+  try {
+    await seedIfEmpty();
+    const db = getDB();
+    const tracks = await db.collection("tracks").find({}).sort({ lengthKm: -1 }).toArray();
+    res.send(tracks);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
   process.exit(1);
 });
 
-app.listen(port, () => console.log(`✅ Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
