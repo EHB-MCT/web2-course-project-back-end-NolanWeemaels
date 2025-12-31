@@ -59,9 +59,35 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
-app.post("/auth/login", (req, res) => {
-  res.status(501).send({ message: "WIP: login not implemented yet" });
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).send({ message: "Missing email or password" });
+    }
+
+    const db = getDB();
+    const users = db.collection("users");
+
+    const user = await users.findOne({ email: String(email).toLowerCase() });
+    if (!user) return res.status(401).send({ message: "Invalid credentials" });
+
+    bcrypt.compare(password, user.password, (err, ok) => {
+      if (err) return res.status(500).send({ message: "Compare failed" });
+      if (!ok) return res.status(401).send({ message: "Invalid credentials" });
+
+      res.send({
+        user: { id: user._id.toString(), username: user.username, email: user.email },
+        message: "Login ok (WIP: no token yet)"
+      });
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
 });
+
 
 // DB connect
 connectDB().catch((err) => {
