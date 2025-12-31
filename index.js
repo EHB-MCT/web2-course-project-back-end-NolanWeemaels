@@ -68,7 +68,10 @@ async function seedIfEmpty() {
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("teams").createIndex({ name: 1 }, { unique: true });
   await db.collection("tracks").createIndex({ name: 1 }, { unique: true });
-  await db.collection("races").createIndex({ userId: 1, teamId: 1, trackId: 1 }, { unique: true });
+  await db.collection("races").createIndex(
+    { userId: 1, teamId: 1, trackId: 1 },
+    { unique: true }
+  );
 }
 
 // Commit 18 helper
@@ -82,6 +85,7 @@ function requireFields(res, body, fields) {
   return true;
 }
 
+// Commit 21 helpers
 function randBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -102,7 +106,7 @@ function simulate(trackLengthKm) {
 
 // health
 app.get("/", (req, res) => {
-  res.send({ message: "Fritkot GP API running 🍟🏎️" });
+  res.send({ message: "Fritkot GP API running" });
 });
 
 // AUTH: register
@@ -249,11 +253,12 @@ app.get("/tracks/:id", async (req, res) => {
   }
 });
 
+// RACES: simulate + save best (Commit 23)
 app.post("/races/simulate", auth, async (req, res) => {
   try {
     await seedIfEmpty();
 
-    const { teamId, trackId } = req.body;
+    const { teamId, trackId, save } = req.body;
     if (!requireFields(res, req.body, ["teamId", "trackId"])) return;
 
     const db = getDB();
@@ -265,7 +270,37 @@ app.post("/races/simulate", auth, async (req, res) => {
 
     const result = simulate(track.lengthKm);
 
-    res.send({
+    if (save === true) {
+      const races = db.collection("races");
+
+      const filter = { userId: req.user.id, teamId, trackId };
+      const existing = await races.findOne(filter);
+
+      const payload = {
+        userId: req.user.id,
+        username: req.user.username,
+        teamId,
+        teamName: team.name,
+        trackId,
+        trackCity: track.city,
+        ...result,
+        createdAt: new Date()
+      };
+
+      if (!existing) {
+        const created = await races.insertOne(payload);
+        return res.status(201).send({ status: "created", id: created.insertedId, result });
+      }
+
+      if (result.lapTimeMs < existing.lapTimeMs) {
+        await races.updateOne({ _id: existing._id }, { $set: payload });
+        return res.status(200).send({ status: "updated", id: existing._id, result });
+      }
+
+      return res.status(200).send({ status: "ignored", id: existing._id, result });
+    }
+
+    return res.send({
       status: "simulated",
       result,
       team: { id: team._id.toString(), name: team.name },
@@ -273,7 +308,7 @@ app.post("/races/simulate", auth, async (req, res) => {
     });
   } catch (e) {
     console.error(e);
-    res.status(500).send({ message: "Server error" });
+    return res.status(500).send({ message: "Server error" });
   }
 });
 
