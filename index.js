@@ -71,9 +71,20 @@ async function seedIfEmpty() {
   await db.collection("races").createIndex({ userId: 1, teamId: 1, trackId: 1 }, { unique: true });
 }
 
+// Commit 18 helper
+function requireFields(res, body, fields) {
+  for (const f of fields) {
+    if (body[f] === undefined || body[f] === null || body[f] === "") {
+      res.status(400).send({ message: `Missing ${f}` });
+      return false;
+    }
+  }
+  return true;
+}
+
 // health
 app.get("/", (req, res) => {
-  res.send({ message: "Fritkot GP API running" });
+  res.send({ message: "Fritkot GP API running 🍟🏎️" });
 });
 
 // AUTH: register
@@ -194,6 +205,7 @@ app.get("/teams/:id", async (req, res) => {
   }
 });
 
+// TRACKS: list
 app.get("/tracks", async (req, res) => {
   try {
     await seedIfEmpty();
@@ -206,8 +218,10 @@ app.get("/tracks", async (req, res) => {
   }
 });
 
+// TRACKS: detail
 app.get("/tracks/:id", async (req, res) => {
   try {
+    await seedIfEmpty();
     const db = getDB();
     const track = await db.collection("tracks").findOne({ _id: new ObjectId(req.params.id) });
     if (!track) return res.status(404).send({ message: "Track not found" });
@@ -216,7 +230,6 @@ app.get("/tracks/:id", async (req, res) => {
     res.status(400).send({ message: "Invalid id" });
   }
 });
-
 
 // DB connect
 connectDB().catch((err) => {
