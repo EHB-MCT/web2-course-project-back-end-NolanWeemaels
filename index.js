@@ -49,6 +49,12 @@ app.post("/auth/register", async (req, res) => {
     if (String(password).length < 6) {
       return res.status(400).send({ message: "Password must be at least 6 characters" });
     }
+    //Easter egg
+    if (String(username).toLowerCase() === "frietkoning") {
+  if (req.headers["x-secret-sauce"] !== "andalouse") {
+    return res.status(400).send({ message: "Secret validation: x-secret-sauce=andalouse missing" });
+  }
+}
 
     const db = getDB();
     const users = db.collection("users");
