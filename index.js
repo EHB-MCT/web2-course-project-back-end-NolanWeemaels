@@ -12,12 +12,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// JWT helper (Commit 10)
+function signToken(payload) {
+  return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
+}
+
 // health
 app.get("/", (req, res) => {
   res.send({ message: "Fritkot GP API running" });
 });
 
-// --- WIP auth routes
+// AUTH: register
 app.post("/auth/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -36,29 +41,35 @@ app.post("/auth/register", async (req, res) => {
     if (exists) return res.status(409).send({ message: "Email already exists" });
 
     bcrypt.hash(password, 10, async (err, hash) => {
-  if (err) return res.status(500).send({ message: "Hashing failed" });
+      if (err) return res.status(500).send({ message: "Hashing failed" });
 
-  const doc = {
-    username: String(username).trim(),
-    email: String(email).toLowerCase().trim(),
-    password: hash,
-    createdAt: new Date()
-  };
+      const doc = {
+        username: String(username).trim(),
+        email: String(email).toLowerCase().trim(),
+        password: hash,
+        createdAt: new Date()
+      };
 
-  const result = await users.insertOne(doc);
+      const result = await users.insertOne(doc);
 
-  res.status(201).send({
-    user: { id: result.insertedId.toString(), username: doc.username, email: doc.email },
-    message: "Register ok"
-  });
-});
+      const token = signToken({
+        id: result.insertedId.toString(),
+        username: doc.username,
+        email: doc.email
+      });
 
+      return res.status(201).send({
+        user: { id: result.insertedId.toString(), username: doc.username, email: doc.email },
+        token
+      });
+    });
   } catch (e) {
     console.error(e);
-    res.status(500).send({ message: "Server error" });
+    return res.status(500).send({ message: "Server error" });
   }
 });
 
+// AUTH: login
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -77,17 +88,22 @@ app.post("/auth/login", async (req, res) => {
       if (err) return res.status(500).send({ message: "Compare failed" });
       if (!ok) return res.status(401).send({ message: "Invalid credentials" });
 
-      res.send({
+      const token = signToken({
+        id: user._id.toString(),
+        username: user.username,
+        email: user.email
+      });
+
+      return res.send({
         user: { id: user._id.toString(), username: user.username, email: user.email },
-        message: "Login ok (WIP: no token yet)"
+        token
       });
     });
   } catch (e) {
     console.error(e);
-    res.status(500).send({ message: "Server error" });
+    return res.status(500).send({ message: "Server error" });
   }
 });
-
 
 // DB connect
 connectDB().catch((err) => {
@@ -95,4 +111,4 @@ connectDB().catch((err) => {
   process.exit(1);
 });
 
-app.listen(port, () => console.log(`✅ Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
