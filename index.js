@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { ObjectId } = require("mongodb");
 
 const { connectDB, getDB } = require("./db");
 const { port, jwtSecret, jwtExpiresIn } = require("./config");
@@ -11,7 +12,6 @@ const { port, jwtSecret, jwtExpiresIn } = require("./config");
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 
 function signToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
@@ -68,16 +68,12 @@ async function seedIfEmpty() {
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("teams").createIndex({ name: 1 }, { unique: true });
   await db.collection("tracks").createIndex({ name: 1 }, { unique: true });
-  await db.collection("races").createIndex(
-    { userId: 1, teamId: 1, trackId: 1 },
-    { unique: true }
-  );
+  await db.collection("races").createIndex({ userId: 1, teamId: 1, trackId: 1 }, { unique: true });
 }
-
 
 // health
 app.get("/", (req, res) => {
-  res.send({ message: "Fritkot GP API running" });
+  res.send({ message: "Fritkot GP API running 🍟🏎️" });
 });
 
 // AUTH: register
@@ -91,12 +87,15 @@ app.post("/auth/register", async (req, res) => {
     if (String(password).length < 6) {
       return res.status(400).send({ message: "Password must be at least 6 characters" });
     }
-    //Easter egg
+
+    // Easter egg
     if (String(username).toLowerCase() === "frietkoning") {
-  if (req.headers["x-secret-sauce"] !== "andalouse") {
-    return res.status(400).send({ message: "Secret validation: x-secret-sauce=andalouse missing" });
-  }
-}
+      if (req.headers["x-secret-sauce"] !== "andalouse") {
+        return res
+          .status(400)
+          .send({ message: "Secret validation: x-secret-sauce=andalouse missing" });
+      }
+    }
 
     const db = getDB();
     const users = db.collection("users");
@@ -169,6 +168,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+// TEAMS: list
 app.get("/teams", async (req, res) => {
   try {
     await seedIfEmpty();
@@ -181,10 +181,23 @@ app.get("/teams", async (req, res) => {
   }
 });
 
+// TEAMS: detail
+app.get("/teams/:id", async (req, res) => {
+  try {
+    await seedIfEmpty();
+    const db = getDB();
+    const team = await db.collection("teams").findOne({ _id: new ObjectId(req.params.id) });
+    if (!team) return res.status(404).send({ message: "Team not found" });
+    res.send(team);
+  } catch {
+    res.status(400).send({ message: "Invalid id" });
+  }
+});
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
   process.exit(1);
 });
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`✅ Server running on http://localhost:${port}`));
