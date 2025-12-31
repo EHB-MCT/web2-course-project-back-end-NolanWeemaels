@@ -33,6 +33,48 @@ function auth(req, res, next) {
   }
 }
 
+async function seedIfEmpty() {
+  const db = getDB();
+  const teamsCol = db.collection("teams");
+  const tracksCol = db.collection("tracks");
+
+  const teamCount = await teamsCol.countDocuments();
+  if (teamCount === 0) {
+    await teamsCol.insertMany([
+      { name: "Mercedes", description: "Silver friet arrows." },
+      { name: "Ferrari", description: "Rosso friet." },
+      { name: "McLaren", description: "Paprika-orange performance." },
+      { name: "RedBull", description: "Energy + extra zout." },
+      { name: "Racing Bulls", description: "Junior bulls met snackpower." },
+      { name: "Sauber", description: "Clean lap, clean sauce." },
+      { name: "Haas", description: "No-nonsense frit engineering." },
+      { name: "Aston Martin", description: "Green & crispy." },
+      { name: "Alpine", description: "Cool blue, hot fries." },
+      { name: "Williams", description: "Classic speed." },
+      { name: "Racefriet GP", description: "Eigen team: de friet-legende." }
+    ]);
+  }
+
+  const trackCount = await tracksCol.countDocuments();
+  if (trackCount === 0) {
+    await tracksCol.insertMany([
+      { name: "Ronde 1", city: "Galmaarden", lengthKm: 5.7 },
+      { name: "Ronde 2", city: "Knokke", lengthKm: 1.2 },
+      { name: "Finale", city: "Brussel", lengthKm: 1.3 }
+    ]);
+  }
+
+  // Indexes (zodat updateBest later makkelijk wordt)
+  await db.collection("users").createIndex({ email: 1 }, { unique: true });
+  await db.collection("teams").createIndex({ name: 1 }, { unique: true });
+  await db.collection("tracks").createIndex({ name: 1 }, { unique: true });
+  await db.collection("races").createIndex(
+    { userId: 1, teamId: 1, trackId: 1 },
+    { unique: true }
+  );
+}
+
+
 // health
 app.get("/", (req, res) => {
   res.send({ message: "Fritkot GP API running" });
