@@ -169,6 +169,18 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+app.get("/teams", async (req, res) => {
+  try {
+    await seedIfEmpty();
+    const db = getDB();
+    const teams = await db.collection("teams").find({}).sort({ name: 1 }).toArray();
+    res.send(teams);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
