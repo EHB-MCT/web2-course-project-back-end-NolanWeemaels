@@ -206,6 +206,17 @@ app.get("/tracks", async (req, res) => {
   }
 });
 
+app.get("/tracks/:id", async (req, res) => {
+  try {
+    const db = getDB();
+    const track = await db.collection("tracks").findOne({ _id: new ObjectId(req.params.id) });
+    if (!track) return res.status(404).send({ message: "Track not found" });
+    res.send(track);
+  } catch {
+    res.status(400).send({ message: "Invalid id" });
+  }
+});
+
 
 // DB connect
 connectDB().catch((err) => {
