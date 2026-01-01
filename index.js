@@ -365,6 +365,58 @@ app.delete("/races/:id", auth, async (req, res) => {
   }
 });
 
+app.put("/races/updateBest", auth, async (req, res) => {
+  try {
+    await seedIfEmpty();
+
+    const { teamId, trackId, position, lapTimeMs, save } = req.body;
+    if (!requireFields(res, req.body, ["teamId", "trackId", "lapTimeMs"])) return;
+
+    const db = getDB();
+    const teams = db.collection("teams");
+    const tracks = db.collection("tracks");
+    const races = db.collection("races");
+
+    const team = await teams.findOne({ _id: new ObjectId(teamId) });
+    const track = await tracks.findOne({ _id: new ObjectId(trackId) });
+
+    if (!team) return res.status(404).send({ message: "Team not found" });
+    if (!track) return res.status(404).send({ message: "Track not found" });
+
+    const filter = { userId: req.user.id, teamId, trackId };
+    const existing = await races.findOne(filter);
+
+    const payload = {
+      userId: req.user.id,
+      username: req.user.username,
+      teamId,
+      teamName: team.name,
+      trackId,
+      trackCity: track.city,
+      position: Number(position || 0),
+      lapTimeMs: Number(lapTimeMs),
+      saved: Boolean(save),
+      createdAt: new Date()
+    };
+
+    if (!existing) {
+      const created = await races.insertOne(payload);
+      return res.status(201).send({ status: "created", id: created.insertedId });
+    }
+
+    if (payload.lapTimeMs < existing.lapTimeMs) {
+      await races.updateOne({ _id: existing._id }, { $set: payload });
+      return res.status(200).send({ status: "updated", id: existing._id });
+    }
+
+    return res.status(200).send({ status: "ignored", id: existing._id });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
