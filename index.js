@@ -312,6 +312,32 @@ app.post("/races/simulate", auth, async (req, res) => {
   }
 });
 
+app.get("/races", auth, async (req, res) => {
+  try {
+    const db = getDB();
+    const races = db.collection("races");
+
+    const sortBy = req.query.sortBy || "latest";
+    const limit = Math.min(Number(req.query.limit || 20), 100);
+    const offset = Math.max(Number(req.query.offset || 0), 0);
+
+    const sort = sortBy === "fastest" ? { lapTimeMs: 1 } : { createdAt: -1 };
+
+    const list = await races
+      .find({ userId: req.user.id })
+      .sort(sort)
+      .skip(offset)
+      .limit(limit)
+      .toArray();
+
+    res.send(list);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ message: "Server error" });
+  }
+});
+
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
