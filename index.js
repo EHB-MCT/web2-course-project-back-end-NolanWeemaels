@@ -74,7 +74,7 @@ async function seedIfEmpty() {
   );
 }
 
-// Commit 18 helper
+// helper
 function requireFields(res, body, fields) {
   for (const f of fields) {
     if (body[f] === undefined || body[f] === null || body[f] === "") {
@@ -85,7 +85,7 @@ function requireFields(res, body, fields) {
   return true;
 }
 
-// Commit 21 helpers
+// simulation helpers
 function randBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -106,7 +106,7 @@ function simulate(trackLengthKm) {
 
 // health
 app.get("/", (req, res) => {
-  res.send({ message: "Fritkot GP API running" });
+  res.send({ message: "Fritkot GP API running 🍟🏎️" });
 });
 
 // AUTH: register
@@ -253,7 +253,7 @@ app.get("/tracks/:id", async (req, res) => {
   }
 });
 
-// RACES: simulate + save best (Commit 23)
+// RACES: simulate + save best
 app.post("/races/simulate", auth, async (req, res) => {
   try {
     await seedIfEmpty();
@@ -312,6 +312,7 @@ app.post("/races/simulate", auth, async (req, res) => {
   }
 });
 
+// RACES: list
 app.get("/races", auth, async (req, res) => {
   try {
     const db = getDB();
@@ -337,6 +338,7 @@ app.get("/races", auth, async (req, res) => {
   }
 });
 
+// RACES: detail
 app.get("/races/:id", auth, async (req, res) => {
   try {
     const db = getDB();
@@ -349,6 +351,7 @@ app.get("/races/:id", auth, async (req, res) => {
   }
 });
 
+// RACES: delete
 app.delete("/races/:id", auth, async (req, res) => {
   try {
     const db = getDB();
@@ -365,12 +368,18 @@ app.delete("/races/:id", auth, async (req, res) => {
   }
 });
 
+// RACES: updateBest (commit 27 + 28 easter egg)
 app.put("/races/updateBest", auth, async (req, res) => {
   try {
     await seedIfEmpty();
 
     const { teamId, trackId, position, lapTimeMs, save } = req.body;
     if (!requireFields(res, req.body, ["teamId", "trackId", "lapTimeMs"])) return;
+
+    // 🥚 Easter egg (commit 28)
+    if (Number(lapTimeMs) === 42069) {
+      return res.status(418).send({ message: "🍟 418 I'm a teapot — secret sauce time!" });
+    }
 
     const db = getDB();
     const teams = db.collection("teams");
@@ -416,11 +425,10 @@ app.put("/races/updateBest", auth, async (req, res) => {
   }
 });
 
-
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
   process.exit(1);
 });
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`✅ Server running on http://localhost:${port}`));
