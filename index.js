@@ -9,7 +9,6 @@ const { ObjectId } = require("mongodb");
 const { connectDB, getDB } = require("./db");
 const { port, jwtSecret, jwtExpiresIn } = require("./config");
 
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -34,38 +33,14 @@ function auth(req, res, next) {
   }
 }
 
-async function seedIfEmpty() {
+/**
+ * Seed (met upsert) zodat je niet telkens je DB moet leegmaken.
+ * + Migratie: als "Sauber" bestaat en "Audi" nog niet, rename Sauber -> Audi.
+ */
+async function seedData() {
   const db = getDB();
-  const teamsCol = db.collection("teams");
-  const tracksCol = db.collection("tracks");
 
-  const teamCount = await teamsCol.countDocuments();
-  if (teamCount === 0) {
-    await teamsCol.insertMany([
-      { name: "Mercedes", description: "Silver friet arrows." },
-      { name: "Ferrari", description: "Rosso friet." },
-      { name: "McLaren", description: "Paprika-orange performance." },
-      { name: "RedBull", description: "Energy + extra zout." },
-      { name: "Racing Bulls", description: "Junior bulls met snackpower." },
-      { name: "Audi", description: "The brand with the four bouletjes" },
-      { name: "Haas", description: "No-nonsense frit engineering." },
-      { name: "Aston Martin", description: "Green & crispy." },
-      { name: "Alpine", description: "Cool blue, hot fries." },
-      { name: "Williams", description: "Classic speed." },
-      { name: "Racefriet GP", description: "Eigen team: de friet-legende." }
-    ]);
-  }
-
-  const trackCount = await tracksCol.countDocuments();
-  if (trackCount === 0) {
-    await tracksCol.insertMany([
-      { name: "Ronde 1", city: "Galmaarden", lengthKm: 5.7 },
-      { name: "Ronde 2", city: "Knokke", lengthKm: 1.2 },
-      { name: "Finale", city: "Brussel", lengthKm: 1.3 }
-    ]);
-  }
-
-  // Indexes (zodat updateBest later makkelijk wordt)
+  // indexes (safe to call multiple times)
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("teams").createIndex({ name: 1 }, { unique: true });
   await db.collection("tracks").createIndex({ name: 1 }, { unique: true });
@@ -73,6 +48,58 @@ async function seedIfEmpty() {
     { userId: 1, teamId: 1, trackId: 1 },
     { unique: true }
   );
+
+  const teamsCol = db.collection("teams");
+  const tracksCol = db.collection("tracks");
+
+  // --- Migratie Sauber -> Audi (alleen als Audi nog niet bestaat)
+  const audiExists = await teamsCol.findOne({ name: "Audi" });
+  const sauberExists = await teamsCol.findOne({ name: "Sauber" });
+  if (!audiExists && sauberExists) {
+    await teamsCol.updateOne(
+      { _id: sauberExists._id },
+      { $set: { name: "Audi", description: "The brand with the four bouletjes." } }
+    );
+  }
+
+  // --- Teams upsert (Audi + Cadillac inbegrepen)
+  const teams = [
+    { name: "Mercedes", description: "Silver friet arrows." },
+    { name: "Ferrari", description: "Rosso friet." },
+    { name: "McLaren", description: "Paprika-orange performance." },
+    { name: "RedBull", description: "Energy + extra zout." },
+    { name: "Racing Bulls", description: "Junior bulls met snackpower." },
+    { name: "Audi", description: "The brand with the four bouletjes." },
+    { name: "Cadillac", description: "American power with extra friet." },
+    { name: "Haas", description: "No-nonsense frit engineering." },
+    { name: "Aston Martin", description: "Green & crispy." },
+    { name: "Alpine", description: "Cool blue, hot fries." },
+    { name: "Williams", description: "Classic speed." },
+    { name: "Racefriet GP", description: "Eigen team: de friet-legende." }
+  ];
+
+  for (const t of teams) {
+    await teamsCol.updateOne(
+      { name: t.name },
+      { $setOnInsert: { ...t, createdAt: new Date() } },
+      { upsert: true }
+    );
+  }
+
+  // --- Tracks upsert
+  const tracks = [
+    { name: "Ronde 1", city: "Galmaarden", lengthKm: 5.7 },
+    { name: "Ronde 2", city: "Knokke", lengthKm: 1.2 },
+    { name: "Finale", city: "Brussel", lengthKm: 1.3 }
+  ];
+
+  for (const tr of tracks) {
+    await tracksCol.updateOne(
+      { name: tr.name },
+      { $setOnInsert: { ...tr, createdAt: new Date() } },
+      { upsert: true }
+    );
+  }
 }
 
 // helper
@@ -205,7 +232,7 @@ app.post("/auth/login", async (req, res) => {
 // TEAMS: list
 app.get("/teams", async (req, res) => {
   try {
-    await seedIfEmpty();
+    await seedData();
     const db = getDB();
     const teams = await db.collection("teams").find({}).sort({ name: 1 }).toArray();
     res.send(teams);
@@ -218,7 +245,7 @@ app.get("/teams", async (req, res) => {
 // TEAMS: detail
 app.get("/teams/:id", async (req, res) => {
   try {
-    await seedIfEmpty();
+    await seedData();
     const db = getDB();
     const team = await db.collection("teams").findOne({ _id: new ObjectId(req.params.id) });
     if (!team) return res.status(404).send({ message: "Team not found" });
@@ -231,7 +258,7 @@ app.get("/teams/:id", async (req, res) => {
 // TRACKS: list
 app.get("/tracks", async (req, res) => {
   try {
-    await seedIfEmpty();
+    await seedData();
     const db = getDB();
     const tracks = await db.collection("tracks").find({}).sort({ lengthKm: -1 }).toArray();
     res.send(tracks);
@@ -244,7 +271,7 @@ app.get("/tracks", async (req, res) => {
 // TRACKS: detail
 app.get("/tracks/:id", async (req, res) => {
   try {
-    await seedIfEmpty();
+    await seedData();
     const db = getDB();
     const track = await db.collection("tracks").findOne({ _id: new ObjectId(req.params.id) });
     if (!track) return res.status(404).send({ message: "Track not found" });
@@ -257,7 +284,7 @@ app.get("/tracks/:id", async (req, res) => {
 // RACES: simulate + save best
 app.post("/races/simulate", auth, async (req, res) => {
   try {
-    await seedIfEmpty();
+    await seedData();
 
     const { teamId, trackId, save } = req.body;
     if (!requireFields(res, req.body, ["teamId", "trackId"])) return;
@@ -369,17 +396,17 @@ app.delete("/races/:id", auth, async (req, res) => {
   }
 });
 
-// RACES: updateBest (commit 27 + 28 easter egg)
+// RACES: updateBest (with easter egg)
 app.put("/races/updateBest", auth, async (req, res) => {
   try {
-    await seedIfEmpty();
+    await seedData();
 
     const { teamId, trackId, position, lapTimeMs, save } = req.body;
     if (!requireFields(res, req.body, ["teamId", "trackId", "lapTimeMs"])) return;
 
-    // 🥚 Easter egg (commit 28)
+    // 🥚 Easter egg
     if (Number(lapTimeMs) === 42069) {
-      return res.status(418).send({ message: "🍟 418 I'm a teapot — secret sauce time!" });
+      return res.status(418).send({ message: "418 I'm a teapot — secret sauce time!" });
     }
 
     const db = getDB();
@@ -426,10 +453,13 @@ app.put("/races/updateBest", auth, async (req, res) => {
   }
 });
 
-// DB connect
-connectDB().catch((err) => {
-  console.error("DB connect error:", err);
-  process.exit(1);
-});
-
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+// start
+connectDB()
+  .then(() => seedData())
+  .then(() => {
+    app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+  })
+  .catch((err) => {
+    console.error("DB connect error:", err);
+    process.exit(1);
+  });
