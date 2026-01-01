@@ -349,6 +349,22 @@ app.get("/races/:id", auth, async (req, res) => {
   }
 });
 
+app.delete("/races/:id", auth, async (req, res) => {
+  try {
+    const db = getDB();
+    const races = db.collection("races");
+
+    const race = await races.findOne({ _id: new ObjectId(req.params.id) });
+    if (!race) return res.status(404).send({ message: "Race not found" });
+    if (race.userId !== req.user.id) return res.status(403).send({ message: "No access" });
+
+    await races.deleteOne({ _id: race._id });
+    res.send({ message: "Race deleted" });
+  } catch {
+    res.status(400).send({ message: "Invalid id" });
+  }
+});
+
 // DB connect
 connectDB().catch((err) => {
   console.error("DB connect error:", err);
