@@ -47,7 +47,7 @@ async function seedIfEmpty() {
       { name: "McLaren", description: "Paprika-orange performance." },
       { name: "RedBull", description: "Energy + extra zout." },
       { name: "Racing Bulls", description: "Junior bulls met snackpower." },
-      { name: "Sauber", description: "Clean lap, clean sauce." },
+      { name: "Audi", description: "The brand with the four bouletjes" },
       { name: "Haas", description: "No-nonsense frit engineering." },
       { name: "Aston Martin", description: "Green & crispy." },
       { name: "Alpine", description: "Cool blue, hot fries." },
