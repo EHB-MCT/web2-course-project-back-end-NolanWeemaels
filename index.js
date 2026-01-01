@@ -9,6 +9,7 @@ const { ObjectId } = require("mongodb");
 const { connectDB, getDB } = require("./db");
 const { port, jwtSecret, jwtExpiresIn } = require("./config");
 
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -106,7 +107,7 @@ function simulate(trackLengthKm) {
 
 // health
 app.get("/", (req, res) => {
-  res.send({ message: "Fritkot GP API running 🍟🏎️" });
+  res.send({ message: "Fritkot GP API running" });
 });
 
 // AUTH: register
@@ -431,4 +432,4 @@ connectDB().catch((err) => {
   process.exit(1);
 });
 
-app.listen(port, () => console.log(`✅ Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
