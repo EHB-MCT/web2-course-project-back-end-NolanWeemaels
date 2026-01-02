@@ -1,3 +1,19 @@
+/*
+SOURCES:
+- dotenv (load variables from .env into process.env):
+    https://github.com/motdotla/dotenv
+- bcrypt (password hashing + comparing):
+    https://github.com/kelektiv/node.bcrypt.js
+- jsonwebtoken (JWT sign/verify):
+    https://github.com/auth0/node-jsonwebtoken
+- Express middleware usage (app.use / built-in middleware):
+    https://expressjs.com/en/guide/using-middleware.html
+- ChatGPT (helperfunction)
+    https://chatgpt.com/share/6957c32f-0a10-800f-80d1-059acbab77be
+*/
+
+
+//Source: https://github.com/motdotla/dotenv
 require("dotenv").config();
 
 const express = require("express");
@@ -13,6 +29,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+//Source: https://github.com/auth0/node-jsonwebtoken
 function signToken(payload) {
   return jwt.sign(payload, jwtSecret, { expiresIn: jwtExpiresIn });
 }
@@ -33,10 +50,7 @@ function auth(req, res, next) {
   }
 }
 
-/**
- * Seed (met upsert) zodat je niet telkens je DB moet leegmaken.
- * + Migratie: als "Sauber" bestaat en "Audi" nog niet, rename Sauber -> Audi.
- */
+
 async function seedData() {
   const db = getDB();
 
@@ -52,17 +66,8 @@ async function seedData() {
   const teamsCol = db.collection("teams");
   const tracksCol = db.collection("tracks");
 
-  // --- Migratie Sauber -> Audi (alleen als Audi nog niet bestaat)
-  const audiExists = await teamsCol.findOne({ name: "Audi" });
-  const sauberExists = await teamsCol.findOne({ name: "Sauber" });
-  if (!audiExists && sauberExists) {
-    await teamsCol.updateOne(
-      { _id: sauberExists._id },
-      { $set: { name: "Audi", description: "The brand with the four bouletjes." } }
-    );
-  }
 
-  // --- Teams upsert (Audi + Cadillac inbegrepen)
+  //Teams upsert 
   const teams = [
     { name: "Mercedes", description: "Silver friet arrows." },
     { name: "Ferrari", description: "Rosso friet." },
@@ -86,7 +91,7 @@ async function seedData() {
     );
   }
 
-  // --- Tracks upsert
+  //Tracks upsert
   const tracks = [
     { name: "Ronde 1", city: "Galmaarden", lengthKm: 5.7 },
     { name: "Ronde 2", city: "Knokke", lengthKm: 1.2 },
@@ -102,7 +107,8 @@ async function seedData() {
   }
 }
 
-// helper
+//Source: https://chatgpt.com/share/6957c32f-0a10-800f-80d1-059acbab77be
+//Helper
 function requireFields(res, body, fields) {
   for (const f of fields) {
     if (body[f] === undefined || body[f] === null || body[f] === "") {
@@ -113,7 +119,7 @@ function requireFields(res, body, fields) {
   return true;
 }
 
-// simulation helpers
+//Simulation helpers
 function randBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -132,12 +138,12 @@ function simulate(trackLengthKm) {
   };
 }
 
-// health
+//Start message
 app.get("/", (req, res) => {
   res.send({ message: "Fritkot GP API running" });
 });
 
-// AUTH: register
+//AUTH: register
 app.post("/auth/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -149,7 +155,7 @@ app.post("/auth/register", async (req, res) => {
       return res.status(400).send({ message: "Password must be at least 6 characters" });
     }
 
-    // Easter egg
+    //Easter egg
     if (String(username).toLowerCase() === "frietkoning") {
       if (req.headers["x-secret-sauce"] !== "andalouse") {
         return res
@@ -164,6 +170,7 @@ app.post("/auth/register", async (req, res) => {
     const exists = await users.findOne({ email: String(email).toLowerCase() });
     if (exists) return res.status(409).send({ message: "Email already exists" });
 
+    //Source: https://github.com/kelektiv/node.bcrypt.js
     bcrypt.hash(password, 10, async (err, hash) => {
       if (err) return res.status(500).send({ message: "Hashing failed" });
 
@@ -193,7 +200,7 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
-// AUTH: login
+//AUTH: login
 app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -229,7 +236,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// TEAMS: list
+//TEAMS: list
 app.get("/teams", async (req, res) => {
   try {
     await seedData();
@@ -242,7 +249,7 @@ app.get("/teams", async (req, res) => {
   }
 });
 
-// TEAMS: detail
+//TEAMS: detail
 app.get("/teams/:id", async (req, res) => {
   try {
     await seedData();
@@ -255,7 +262,7 @@ app.get("/teams/:id", async (req, res) => {
   }
 });
 
-// TRACKS: list
+//TRACKS: list
 app.get("/tracks", async (req, res) => {
   try {
     await seedData();
@@ -268,7 +275,7 @@ app.get("/tracks", async (req, res) => {
   }
 });
 
-// TRACKS: detail
+//TRACKS: detail
 app.get("/tracks/:id", async (req, res) => {
   try {
     await seedData();
@@ -281,7 +288,7 @@ app.get("/tracks/:id", async (req, res) => {
   }
 });
 
-// RACES: simulate + save best
+//RACES: simulate + save best
 app.post("/races/simulate", auth, async (req, res) => {
   try {
     await seedData();
@@ -340,7 +347,7 @@ app.post("/races/simulate", auth, async (req, res) => {
   }
 });
 
-// RACES: list
+//RACES: list
 app.get("/races", auth, async (req, res) => {
   try {
     const db = getDB();
@@ -366,7 +373,7 @@ app.get("/races", auth, async (req, res) => {
   }
 });
 
-// RACES: detail
+//RACES: detail
 app.get("/races/:id", auth, async (req, res) => {
   try {
     const db = getDB();
@@ -379,7 +386,7 @@ app.get("/races/:id", auth, async (req, res) => {
   }
 });
 
-// RACES: delete
+//RACES: delete
 app.delete("/races/:id", auth, async (req, res) => {
   try {
     const db = getDB();
@@ -396,7 +403,7 @@ app.delete("/races/:id", auth, async (req, res) => {
   }
 });
 
-// RACES: updateBest (with easter egg)
+//RACES: updateBest (with easter egg)
 app.put("/races/updateBest", auth, async (req, res) => {
   try {
     await seedData();
@@ -404,10 +411,6 @@ app.put("/races/updateBest", auth, async (req, res) => {
     const { teamId, trackId, position, lapTimeMs, save } = req.body;
     if (!requireFields(res, req.body, ["teamId", "trackId", "lapTimeMs"])) return;
 
-    // 🥚 Easter egg
-    if (Number(lapTimeMs) === 42069) {
-      return res.status(418).send({ message: "418 I'm a teapot — secret sauce time!" });
-    }
 
     const db = getDB();
     const teams = db.collection("teams");
@@ -453,7 +456,7 @@ app.put("/races/updateBest", auth, async (req, res) => {
   }
 });
 
-// start
+//Start API
 connectDB()
   .then(() => seedData())
   .then(() => {

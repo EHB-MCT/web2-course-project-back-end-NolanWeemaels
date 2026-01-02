@@ -1,22 +1,33 @@
 [![Open in Codespaces](https://classroom.github.com/assets/launch-codespace-2972f46106e565e64193e422d61a12cf1da4916b45550586e14ef0a7c637dd04.svg)](https://classroom.github.com/open-in-codespaces?assignment_repo_id=22117229)
-# Your project name ✨
-A short description of your project. Aim for 2-3 lines. \
+# Backend De Fritkot Grand Prix 
+This is the backend for the courseproject of WEB 2. This is part of a bigger project. In the frontend people will be able to log in or register to the website. After that they can do a simulation of Formula 1 but with a little twist. Instead of regular pitstops they will stop at "fritkoten". there they will do a mandatory pitstop. 
 
-Website url: [website.be](website.be) (optional)
+API url: [FRITKOT GP API](https://web2-course-project-back-end-bh78.onrender.com/) 
 
-If you want to add more sections, please do so after the existing ones (avoid burying your sources under a lot of text!).
 
-## Up & running (optional) 🏃‍➡️
-This should contain step by step instructions to run your project (delete this section if it's not relevant). \
-Also include login credentials or other vital information if needed.
+## Up & running
+Steps to run API local:
 
-## Sources 🗃️
-List **ALL your used sources** here:
-- Used a tutorial or example code? Place a link to them here. (youtube, website, github, ...) and **list the files in which they were used**.
-- Used ChatGPT? Generate a ChatGPT share link: options (three dots) > share and **list the files in which it was used**. This will not work if you have uploaded images in your prompt. In that case, add screenshots instead.
+1. Open terminal
+2. make sure you are in the correct folder
+3. use this command to run API: npm run dev
 
-It's not enough to only list the sources here, also add the sources to the top of the files in which you used them and indicate the specific parts of the code which are not your own (by writing comments and refering to the correct source(s)). \
-IF you use a source as the base/start for a file, then first place the source in the file and **COMMIT it IMMEDIATELY, BEFORE** adding your own code or modifying it. \
-**ALWAYS** use concise BUT CLEAR commit messages!
+## Sources 
 
-Have a look at the example repository: https://github.com/EHB-MCT/example-readme
+- dotenv (load .env into process.env) — used in: index.js
+    [GitHub](https://github.com/motdotla/dotenv)
+
+- Node.js process.env (environment variables) — used in: config.js
+    [nodejs.org](https://nodejs.org/api/process.html)
+
+- bcrypt (hashing & comparing passwords) — used in: index.js
+    [GitHub](https://github.com/kelektiv/node.bcrypt.js)
+
+- jsonwebtoken (JWT sign/verify) — used in: index.js
+    [GitHub](https://github.com/auth0/node-jsonwebtoken)
+
+- MongoDB Node.js driver (MongoClient connect pattern) — used in: db.js
+    [MongoDB](https://www.mongodb.com/docs/drivers/node/v6.10/connect/connect/)
+
+- ChatGPT (helper function) — used in: index.js
+    [ChatGPT](https://chatgpt.com/share/6957c32f-0a10-800f-80d1-059acbab77be)

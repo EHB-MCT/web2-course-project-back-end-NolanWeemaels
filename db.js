@@ -1,3 +1,14 @@
+/*
+ SOURCES:
+ - MongoDB Node.js driver — Connection / MongoClient usage:
+    https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/
+ - The Twelve-Factor App — Config (MONGO_URI via env vars):
+    https://12factor.net/config
+
+USED IN THIS FILE:
+- `new MongoClient(mongoUri)` + `await client.connect()`
+- `client.db(dbName)` pattern
+ */
 
 const { MongoClient } = require("mongodb");
 const { mongoUri, dbName } = require("./config");
