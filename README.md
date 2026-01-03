@@ -31,3 +31,5 @@ Steps to run API local:
 
 - ChatGPT (helper function) — used in: index.js
     [ChatGPT](https://chatgpt.com/share/6957c32f-0a10-800f-80d1-059acbab77be)
+
+- General structure was made in colaboration with fellow student Elouan Van Capellen
